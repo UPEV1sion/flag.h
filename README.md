@@ -28,7 +28,7 @@ bool help;
 char *delim;
 double pi;
 int64_t the_unswer;
-int64_t the_unswer_unsigned;
+uint64_t the_unswer_unsigned;
 flag_decl_bool(&flags, &help, "-h", "--help", false, "Display help");
 // ...
 

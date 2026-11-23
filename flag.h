@@ -1,3 +1,52 @@
+/* flag.h v1.0.0
+
+Header only flag parser lib.
+
+## API
+
+```c
+void flag_decl_bool(  Flags *flags, bool *val,     const char *short_flag, const char *long_flag, bool default_val,     const char *description);
+void flag_decl_str(   Flags *flags, char **val,    const char *short_flag, const char *long_flag, char *default_val,    const char *description);
+void flag_decl_double(Flags *flags, double *val,   const char *short_flag, const char *long_flag, double default_val,   const char *description);
+void flag_decl_int(   Flags *flags, int64_t *val,  const char *short_flag, const char *long_flag, int64_t default_val,  const char *description);
+void flag_decl_uint(  Flags *flags, uint64_t *val, const char *short_flag, const char *long_flag, uint64_t default_val, const char *description);
+
+int flag_parse(Flags *flags, int argc, char **argv);
+void flag_free(Flags *flags);
+
+void flag_print_info(Flags *flags, const char *header);
+
+bool flag_seen(Flags *flags, const char *short_flag, const char *long_flag);
+``` 
+
+## USAGE
+
+```c
+Flags flags = {0};
+
+bool help;
+char *delim;
+double pi;
+int64_t the_unswer;
+int64_t the_unswer_unsigned;
+flag_decl_bool(&flags, &help, "-h", "--help", false, "Display help");
+// ...
+
+if(0 != flag_parse(&flags, argc, argv))
+{
+    flag_print_usage(&flags, "USAGE");
+    return 1;
+}
+
+if(help)
+{
+    flag_print_usage(&flags, "USAGE");
+    return 0;
+}
+```
+
+*/
+
 #ifndef FLAG_H_
 #define FLAG_H_
 
@@ -548,3 +597,13 @@ FLAGDEF bool flag_seen(Flags *flags, const char *short_flag, const char *long_fl
 #endif // FLAG_IMPLEMENTATION
 
 #endif // FLAG_H_
+
+/*
+ Copyright 2026 Emanuel Schäffer
+ 
+ Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ 
+ The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ 
+ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/

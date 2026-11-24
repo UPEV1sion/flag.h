@@ -81,7 +81,7 @@ FLAGDEF void flag_free(Flags *flags);
 
 FLAGDEF void flag_print_info(Flags *flags, const char *header);
 
-FLAGDEF bool flag_seen(Flags *flags, const char *short_flag, const char *long_flag);
+FLAGDEF bool flag_seen(Flags *flags, void *flag);
 
 #ifdef FLAG_IMPLEMENTATION
 
@@ -548,20 +548,11 @@ FLAGDEF void flag_print_info(Flags *flags, const char *header)
         "    Syntax: <...> are mandatory arguments and [...] are optional. In the case of a `bool` this defaults to `true`\n");
 }
 
-FLAGDEF bool flag_seen(Flags *flags, const char *short_flag, const char *long_flag)
+FLAGDEF bool flag_seen(Flags *flags, void *flag)
 {
     flag__da_foreach(Flag, flag, flags)
     {
-        const bool short_matches = (short_flag && flag->short_flag) && (0 == strcmp(flag->short_flag, short_flag));
-        const bool long_matches  = (long_flag && flag->long_flag) && (0 == strcmp(flag->long_flag, long_flag));
-        if (short_flag && long_flag && (short_matches ^ long_matches))
-        {
-            fprintf(stderr,
-                    "WARNING: flag inconsistency detected! '%s' and '%s' do not match the declared flag!\n",
-                    short_flag,
-                    long_flag);
-        }
-        if (short_matches || long_matches) return flag->seen;
+        if(flag->user_ptr == flag) return flag->seen;
     }
 
     return false;

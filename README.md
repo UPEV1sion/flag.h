@@ -59,5 +59,5 @@ int main(int argc, char **argv)
 - Types: `bool`, `str` (`char *`), `int` (`int64_t`), `uint` (`uint64_t`), and `double`
 - Long Flags: `--name value` or `--name=value`
 - Short Flags: `-o value`, `-o=value`, or inline `-ovalue`
-- Grouped Flags: `-vo value`, `-vo=value`, or `-vovalue` (boolean flags in the group get set, and a non-boolean flagat the end takes the value)
+- Grouped Flags: `-vo value`, `-vo=value`, or `-vovalue` (boolean flags in the group get set, and a non-boolean flag at the end takes the value)
 - Booleans: `-v` or `--verbose` sets `true` optional `true`/`false` works on standalone boolean flags.

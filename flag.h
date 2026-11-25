@@ -85,6 +85,19 @@ FLAGDEF bool flag_seen(Flags *flags, void *flag);
 
 #ifdef FLAG_IMPLEMENTATION
 
+#if defined(__cplusplus)
+#  define FLAG__STATIC_ASSERT(cond, msg) static_assert((cond), msg)
+#elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+#  define FLAG__STATIC_ASSERT(cond, msg) _Static_assert((cond), msg)
+#else
+#  define FLAG__CAT_(a, b) a##b
+#  define FLAG__CAT(a, b) FLAG__CAT_(a, b)
+
+#  define FLAG__STATIC_ASSERT(cond, msg)                           \
+     typedef char FLAG__CAT(flag__sa_, __LINE__)[(cond) ? 1 : -1]; \
+     (void)sizeof(FLAG__CAT(flag__sa_, __LINE__))
+#endif
+
 #define FLAG__DA_INIT_CAP 32
 #define FLAG__DA_GROW_SIZE 2
 
@@ -263,7 +276,7 @@ FLAGDEF bool flag__parse_arg(void *val, FlagType type, char *arg)
 {
     if ('-' == *arg && !(FLAG_INT == type || FLAG_DOUBLE == type)) return false;
 
-    static_assert(5 == _flag_count, "The amount of flag types has changed!");
+    FLAG__STATIC_ASSERT(5 == _flag_count, "The amount of flag types has changed!");
     switch (type)
     {
     case FLAG_BOOL: {
@@ -350,7 +363,7 @@ FLAGDEF int flag__apply_flag_val(Flag *f, const char *flag_label, int *argc, cha
         else
         {
             *(bool *)f->user_ptr = true;
-            f->seen              = true;
+            f->seen = true;
             return 0;
         }
     }
@@ -383,13 +396,13 @@ FLAGDEF int flag_parse(Flags *flags, int argc, char **argv)
             assert(strlen(flag->long_flag) >= 2 && '-' == flag->long_flag[0] && '-' == flag->long_flag[1]);
         }
 
-        static_assert(5 == _flag_count, "The amount of flag types has changed!");
+        FLAG__STATIC_ASSERT(5 == _flag_count, "The amount of flag types has changed!");
         switch (flag->type)
         {
-        case FLAG_BOOL:   *(bool *)flag->user_ptr = flag->defaults.b; break;
-        case FLAG_STRING: *(char **)flag->user_ptr = flag->defaults.s; break;
-        case FLAG_DOUBLE: *(double *)flag->user_ptr = flag->defaults.d; break;
-        case FLAG_INT:    *(int64_t *)flag->user_ptr = flag->defaults.i; break;
+        case FLAG_BOOL:       *(bool *)flag->user_ptr = flag->defaults.b; break;
+        case FLAG_STRING:    *(char **)flag->user_ptr = flag->defaults.s; break;
+        case FLAG_DOUBLE:   *(double *)flag->user_ptr = flag->defaults.d; break;
+        case FLAG_INT:     *(int64_t *)flag->user_ptr = flag->defaults.i; break;
         case FLAG_UINT:   *(uint64_t *)flag->user_ptr = flag->defaults.u; break;
         default:          assert(0); break;
         }
@@ -397,7 +410,7 @@ FLAGDEF int flag_parse(Flags *flags, int argc, char **argv)
 
     while (argc > 0)
     {
-        char *flag            = flag__shift_args(argc, argv);
+        char *flag = flag__shift_args(argc, argv);
         const size_t flag_len = strlen(flag);
         if (flag_len < 2 || '-' != flag[0])
         {
@@ -413,7 +426,7 @@ FLAGDEF int flag_parse(Flags *flags, int argc, char **argv)
                 return 1;
             }
 
-            const char *eq        = strchr(flag, '=');
+            const char *eq = strchr(flag, '=');
             const size_t name_len = eq ? (size_t)(eq - flag) : strlen(flag);
             if (0 == name_len)
             {
@@ -436,68 +449,38 @@ FLAGDEF int flag_parse(Flags *flags, int argc, char **argv)
             continue;
         }
 
-        if (2 == flag_len || '=' == flag[2])
-        {
-            Flag *f = short_flags[(unsigned char)flag[1]];
-            if (!f)
-            {
-                fprintf(stderr, "ERROR: unknown flag '%s'\n", flag);
-                return 1;
-            }
-
-            char *val_str = NULL;
-            if ('=' == flag[2])
-            {
-                val_str = flag + 3;
-            }
-            else if (FLAG_BOOL != f->type)
-            {
-                if (argc <= 0)
-                {
-                    fprintf(stderr, "ERROR: flag '%s' requires an argument\n", flag);
-                    return 1;
-                }
-                val_str = flag__shift_args(argc, argv);
-            }
-            else
-            {
-                if (argc > 0 && (0 == strcmp(*argv, "true") || 0 == strcmp(*argv, "false")))
-                {
-                    val_str = flag__shift_args(argc, argv);
-                }
-                else
-                {
-                    *(bool *)f->user_ptr = true;
-                    f->seen              = true;
-                    continue;
-                }
-            }
-
-            if (!flag__parse_arg(f->user_ptr, f->type, val_str))
-            {
-                fprintf(stderr, "ERROR: invalid value '%s' for flag '%s'\n", val_str, flag);
-                return 1;
-            }
-            f->seen = true;
-            continue;
-        }
-
         for (size_t i = 1; i < flag_len; ++i)
         {
             const char c = flag[i];
-            Flag *f      = short_flags[(unsigned char)c];
+            Flag *f = short_flags[(unsigned char)c];
             if (!f)
             {
                 fprintf(stderr, "ERROR: invalid flag '-%c'\n", c);
                 return 1;
             }
-            if (FLAG_BOOL != f->type)
+            if (FLAG_BOOL == f->type)
             {
-                fprintf(stderr, "ERROR: flag '-%c' cannot be bundled or take '=' in '%s'\n", c, flag);
+                *(bool *)f->user_ptr = true;
+                f->seen = true;
+                continue;
+            }
+
+            char label[] = {'-', c, 0};
+            const char *attached_val = NULL;
+            if('=' == flag[i + 1])
+            {
+                attached_val = flag + i + 2;
+            }
+            else if(0 != flag[i + 1])
+            {
+                attached_val = flag + i + 1;
+            }
+            
+            if(0 != flag__apply_flag_val(f, label, &argc, &argv, attached_val))
+            {
                 return 1;
             }
-            *(bool *)f->user_ptr = true;
-            f->seen              = true;
+            break;
         }
     }
 
@@ -530,7 +513,7 @@ FLAGDEF void flag_print_info(Flags *flags, const char *header)
         const char *sep     = (flag->short_flag && flag->long_flag) ? ", " : "  ";
         const char *long_f  = flag->long_flag ? flag->long_flag : "";
         char *type_info     = NULL;
-        static_assert(5 == _flag_count, "The amount of flag types has changed!");
+        FLAG__STATIC_ASSERT(5 == _flag_count, "The amount of flag types has changed!");
         switch (flag->type)
         {
         case FLAG_INT:    type_info = "<int>"; break;
@@ -548,11 +531,11 @@ FLAGDEF void flag_print_info(Flags *flags, const char *header)
         "    Syntax: <...> are mandatory arguments and [...] are optional. In the case of a `bool` this defaults to `true`\n");
 }
 
-FLAGDEF bool flag_seen(Flags *flags, void *flag)
+FLAGDEF bool flag_seen(Flags *flags, void *user_ptr)
 {
     flag__da_foreach(Flag, flag, flags)
     {
-        if(flag->user_ptr == flag) return flag->seen;
+        if(flag->user_ptr == user_ptr) return flag->seen;
     }
 
     return false;

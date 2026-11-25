@@ -1,6 +1,6 @@
-# Header-Only Flag Parser
+# flag.h
 
-This flag parser is inspired by GO's flag parser
+A small, single-header C flag parser inspired by Go's flag package, with long flags (--foo) added on top.
 
 ## API
 
@@ -16,31 +16,48 @@ void flag_free(Flags *flags);
 
 void flag_print_info(Flags *flags, const char *header);
 
-bool flag_seen(Flags *flags, const char *short_flag, const char *long_flag);
+bool flag_seen(Flags *flags, void *user_ptr);
 ``` 
 
 ## USAGE
 
 ```c
-Flags flags = {0};
+#define FLAG_IMPLEMENTATION
+#include "flag.h"
+#include <stdio.h>
 
-bool help;
-char *delim;
-double pi;
-int64_t the_unswer;
-uint64_t the_unswer_unsigned;
-flag_decl_bool(&flags, &help, "-h", "--help", false, "Display help");
-// ...
-
-if(0 != flag_parse(&flags, argc, argv))
+int main(int argc, char **argv)
 {
-    flag_print_usage(&flags, "USAGE");
-    return 1;
-}
+    bool verbose;
+    char *output;
+    int64_t count;
 
-if(help)
-{
-    flag_print_usage(&flags, "USAGE");
+    Flags flags = {0};
+    flag_decl_bool(&flags, &verbose, "-v", "--verbose", false,     "Enable verbose output");
+    flag_decl_str(&flags,  &output,  "-o", "--output",  "out.txt", "Output file path");
+    flag_decl_int(&flags,  &count,   "-n", "--count",   1,         "Repeat count");
+
+    if (flag_parse(&flags, argc - 1, argv + 1) != 0)
+    {
+        flag_print_info(&flags, "USAGE:");
+        flag_free(&flags);
+        return 1;
+    }
+
+    if (flag_seen(&flags, &output))
+    {
+        printf("Custom output: %s\n", output);
+    }
+
+    flag_free(&flags);
     return 0;
 }
 ```
+
+## Supported Syntax
+
+- Types: `bool`, `str` (`char \*`), `int` (`int64\_t`), `uint` (`uint64\_t`), and `double`
+- Long Flags: `--name value` or `--name=value`
+- Short Flags: `-o value`, `-o=value`, or inline `-ovalue`
+- Grouped Flags: `-vo value`, `-vo=value`, or `-vovalue` (boolean flags in the group get set, and a non-boolean flagat the end takes the value)
+- Booleans: `-v` or `--verbose` sets `true` optional `true`/`false` works on standalone boolean flags.

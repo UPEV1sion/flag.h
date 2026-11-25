@@ -42,7 +42,9 @@ typedef struct {
 typedef struct {
     int argc;
     char **argv;
+#ifndef FLAG_NO_PROGRAM_NAME
     const char *program_name;
+#endif // FLAG_NO_PROGRAM_NAME
     bool help;
     size_t count;
     size_t capacity;
@@ -87,7 +89,9 @@ FLAGDEF void flag_print_info(Flags *flags, const char *header);
 
 FLAGDEF bool flag_seen(Flags *flags, void *flag);
 FLAGDEF void flag_rest_args(Flags *flags, int *argc, char ***argv);
+#ifndef FLAG_NO_PROGRAM_NAME
 FLAGDEF const char* flag_program_name(Flags *flags);
+#endif // FLAG_NO_PROGRAM_NAME
 
 #ifdef FLAG_IMPLEMENTATION
 
@@ -388,7 +392,9 @@ FLAGDEF int flag_parse(Flags *flags, int argc, char **argv)
 {
     flags->argc = argc;
     flags->argv = argv;
+#ifndef FLAG_NO_PROGRAM_NAME
     flags->program_name = flag__shift_args(flags->argc, flags->argv);
+#endif // FLAG_NO_PROGRAM_NAME
 
 #ifndef FLAG_NO_HELP
     bool custom_help = false;
@@ -584,10 +590,12 @@ FLAGDEF void flag_rest_args(Flags *flags, int *argc, char ***argv)
     *argv = flags->argv;
 }
 
+#ifndef FLAG_NO_PROGRAM_NAME
 FLAGDEF const char* flag_program_name(Flags *flags)
 {
     return flags->program_name;
 }
+#endif // FLAG_NO_PROGRAM_NAME
 
 #endif // FLAG_IMPLEMENTATION
 

@@ -74,3 +74,8 @@ int main(int argc, char **argv)
 - Automatic `-h` / `--help`: Unless disabled, `flag_parse()` automatically registers `-h` / `--help`. When encountered, it prints usage info, frees flags, and calls `exit(0)`.
 - Custom `-h` or `--help` override: If you declare your own flag using `-h` or `--help`, the built-in help flag and its automatic print-and-exit behavior are invalidated.
 - Disabling built-in help (`FLAG_NO_HELP`): Define `FLAG_NO_HELP` before `#include "flag.h"` to opt out of automatic `-h` / `--help` injection and exit behavior.
+
+## FLAG\_NO\_PROGRAM\_NAME
+
+By default, `flag_parse` expectes its first argument to be the program name.
+If this behavior is unwanted, e.g., for a subcommand system, `FLAG_NO_PROGRAM_NAME` should be defined before `#include "flag.h"` to opt out.

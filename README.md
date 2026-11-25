@@ -56,7 +56,7 @@ int main(int argc, char **argv)
 
 ## Supported Syntax
 
-- Types: `bool`, `str` (`char \*`), `int` (`int64\_t`), `uint` (`uint64\_t`), and `double`
+- Types: `bool`, `str` (`char *`), `int` (`int64_t`), `uint` (`uint64_t`), and `double`
 - Long Flags: `--name value` or `--name=value`
 - Short Flags: `-o value`, `-o=value`, or inline `-ovalue`
 - Grouped Flags: `-vo value`, `-vo=value`, or `-vovalue` (boolean flags in the group get set, and a non-boolean flagat the end takes the value)

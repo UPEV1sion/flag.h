@@ -17,6 +17,8 @@ void flag_free(Flags *flags);
 void flag_print_info(Flags *flags, const char *header);
 
 bool flag_seen(Flags *flags, void *user_ptr);
+FLAGDEF void flag_rest_args(Flags *flags, int *argc, char ***argv);
+FLAGDEF const char* flag_program_name(Flags *flags);
 ``` 
 
 ## USAGE
@@ -37,7 +39,7 @@ int main(int argc, char **argv)
     flag_decl_str(&flags,  &output,  "-o", "--output",  "out.txt", "Output file path");
     flag_decl_int(&flags,  &count,   "-n", "--count",   1,         "Repeat count");
 
-    if (flag_parse(&flags, argc - 1, argv + 1) != 0)
+    if (flag_parse(&flags, argc, argv) != 0)
     {
         flag_print_info(&flags, "USAGE:");
         flag_free(&flags);
@@ -48,6 +50,10 @@ int main(int argc, char **argv)
     {
         printf("Custom output: %s\n", output);
     }
+
+    int rest_argc;
+    char **rest_argv;
+    flag_rest_args(&flags, &rest_argc, &rest_argv);
 
     flag_free(&flags);
     return 0;
@@ -61,3 +67,10 @@ int main(int argc, char **argv)
 - Short Flags: `-o value`, `-o=value`, or inline `-ovalue`
 - Grouped Flags: `-vo value`, `-vo=value`, or `-vovalue` (boolean flags in the group get set, and a non-boolean flag at the end takes the value)
 - Booleans: `-v` or `--verbose` sets `true` optional `true`/`false` works on standalone boolean flags.
+- Positional Arguments & `--`: Flag parsing stops at the first non-flag argument (including standalone `-`) or at `--` (which is consumed). That argument and everything after it remain available via `flag_rest_args()`.
+
+## Help & FLAG\_NO\_HELP
+
+- Automatic `-h` / `--help`: Unless disabled, `flag_parse()` automatically registers `-h` / `--help`. When encountered, it prints usage info, frees flags, and calls `exit(0)`.
+- Custom `-h` or `--help` override: If you declare your own flag using `-h` or `--help`, the built-in help flag and its automatic print-and-exit behavior are invalidated.
+- Disabling built-in help (`FLAG_NO_HELP`): Define `FLAG_NO_HELP` before `#include "flag.h"` to opt out of automatic `-h` / `--help` injection and exit behavior.

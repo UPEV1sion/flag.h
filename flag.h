@@ -40,6 +40,10 @@ typedef struct {
 } Flag;
 
 typedef struct {
+    int argc;
+    char **argv;
+    const char *program_name;
+    bool help;
     size_t count;
     size_t capacity;
     Flag *items;
@@ -82,6 +86,8 @@ FLAGDEF void flag_free(Flags *flags);
 FLAGDEF void flag_print_info(Flags *flags, const char *header);
 
 FLAGDEF bool flag_seen(Flags *flags, void *flag);
+FLAGDEF void flag_rest_args(Flags *flags, int *argc, char ***argv);
+FLAGDEF const char* flag_program_name(Flags *flags);
 
 #ifdef FLAG_IMPLEMENTATION
 
@@ -337,7 +343,7 @@ FLAGDEF Flag *flag__find_long_flag(Flags *flags, const char *name, size_t name_l
     return NULL;
 }
 
-FLAGDEF int flag__apply_flag_val(Flag *f, const char *flag_label, int *argc, char ***argv, const char *attached_val)
+FLAGDEF int flag__apply_flag_val(Flags *flags, Flag *f, const char *flag_label, const char *attached_val)
 {
     char *val_str = NULL;
 
@@ -347,18 +353,18 @@ FLAGDEF int flag__apply_flag_val(Flag *f, const char *flag_label, int *argc, cha
     }
     else if (FLAG_BOOL != f->type)
     {
-        if (*argc <= 0)
+        if (flags->argc <= 0)
         {
             fprintf(stderr, "ERROR: flag '%s' requires an argument\n", flag_label);
             return 1;
         }
-        val_str = flag__shift_args(*argc, *argv);
+        val_str = flag__shift_args(flags->argc, flags->argv);
     }
     else
     {
-        if (*argc > 0 && (0 == strcmp(**argv, "true") || 0 == strcmp(**argv, "false")))
+        if (flags->argc > 0 && (0 == strcmp(*flags->argv, "true") || 0 == strcmp(*flags->argv, "false")))
         {
-            val_str = flag__shift_args(*argc, *argv);
+            val_str = flag__shift_args(flags->argc, flags->argv);
         }
         else
         {
@@ -378,8 +384,27 @@ FLAGDEF int flag__apply_flag_val(Flag *f, const char *flag_label, int *argc, cha
     return 0;
 }
 
-FLAGDEF int flag_parse(Flags *flags, int argc, char **argv)
+FLAGDEF int flag_parse(Flags *flags, int argc_, char **argv_)
 {
+    flags->argc = argc_;
+    flags->argv = argv_;
+    flags->program_name = flag__shift_args(flags->argc, flags->argv);
+
+#ifndef FLAG_NO_HELP
+    bool custom_help = false;
+    flag__da_foreach(Flag, flag, flags)
+    {
+        if ((flag->short_flag && strcmp(flag->short_flag, "-h") == 0) ||
+            (flag->long_flag  && strcmp(flag->long_flag, "--help") == 0))
+        {
+            custom_help = true;
+            break;
+        }
+    }
+
+    if (!custom_help) flag_decl_bool(flags, &flags->help, "-h", "--help", false, "Display the help message and exit");
+#endif // FLAG_NO_HELP
+
     Flag *short_flags[FLAG__ALPHABET_SIZE] = {0};
 
     flag__da_foreach(Flag, flag, flags)
@@ -408,22 +433,24 @@ FLAGDEF int flag_parse(Flags *flags, int argc, char **argv)
         }
     }
 
-    while (argc > 0)
+    while (flags->argc > 0)
     {
-        char *flag = flag__shift_args(argc, argv);
+        char *flag = flag__shift_args(flags->argc, flags->argv);
         const size_t flag_len = strlen(flag);
         if (flag_len < 2 || '-' != flag[0])
         {
-            fprintf(stderr, "ERROR: malformed flag '%s'\n", flag);
-            return 1;
+            // stop at the first non flag
+            flags->argc++;
+            flags->argv--;
+            break;
         }
 
         if ('-' == flag[1])
         {
             if (2 == flag_len)
             {
-                fprintf(stderr, "ERROR: standalone '--' is not supported\n");
-                return 1;
+                // stop at the first --
+                break;
             }
 
             const char *eq = strchr(flag, '=');
@@ -442,7 +469,7 @@ FLAGDEF int flag_parse(Flags *flags, int argc, char **argv)
             }
 
             const char *attached_val = eq ? (eq + 1) : NULL;
-            if (0 != flag__apply_flag_val(f, flag, &argc, &argv, attached_val))
+            if (0 != flag__apply_flag_val(flags, f, flag, attached_val))
             {
                 return 1;
             }
@@ -476,7 +503,7 @@ FLAGDEF int flag_parse(Flags *flags, int argc, char **argv)
                 attached_val = flag + i + 1;
             }
             
-            if(0 != flag__apply_flag_val(f, label, &argc, &argv, attached_val))
+            if(0 != flag__apply_flag_val(flags, f, label, attached_val))
             {
                 return 1;
             }
@@ -484,12 +511,22 @@ FLAGDEF int flag_parse(Flags *flags, int argc, char **argv)
         }
     }
 
+#ifndef FLAG_NO_HELP
+    if(!custom_help && flags->help)
+    {
+        flag_print_info(flags, "USAGE:");
+        flag_free(flags);
+        exit(0);
+    }
+#endif // FLAG_NO_HELP
+
     return 0;
 }
 
 FLAGDEF void flag_free(Flags *flags)
 {
     flag__da_free(flags);
+    memset(flags, 0, sizeof(*flags));
 }
 
 FLAGDEF void flag_print_info(Flags *flags, const char *header)
@@ -504,7 +541,7 @@ FLAGDEF void flag_print_info(Flags *flags, const char *header)
         }
     }
 
-    puts(header);
+    puts(header ? header : "USAGE:");
     flag__da_foreach(Flag, flag, flags)
     {
         if (!flag->short_flag && !flag->long_flag) continue;
@@ -539,6 +576,17 @@ FLAGDEF bool flag_seen(Flags *flags, void *user_ptr)
     }
 
     return false;
+}
+
+FLAGDEF void flag_rest_args(Flags *flags, int *argc, char ***argv)
+{
+    *argc = flags->argc;
+    *argv = flags->argv;
+}
+
+FLAGDEF const char* flag_program_name(Flags *flags)
+{
+    return flags->program_name;
 }
 
 #endif // FLAG_IMPLEMENTATION

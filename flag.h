@@ -384,10 +384,10 @@ FLAGDEF int flag__apply_flag_val(Flags *flags, Flag *f, const char *flag_label, 
     return 0;
 }
 
-FLAGDEF int flag_parse(Flags *flags, int argc_, char **argv_)
+FLAGDEF int flag_parse(Flags *flags, int argc, char **argv)
 {
-    flags->argc = argc_;
-    flags->argv = argv_;
+    flags->argc = argc;
+    flags->argv = argv;
     flags->program_name = flag__shift_args(flags->argc, flags->argv);
 
 #ifndef FLAG_NO_HELP

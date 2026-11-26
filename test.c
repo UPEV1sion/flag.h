@@ -23,14 +23,14 @@ static int run_worker(int argc, char **argv)
     double d;
 
     Flags flags = {0};
-    flag_decl_bool(&flags, &a,         "-a", "--alpha",    false,         "Flag A");
-    flag_decl_bool(&flags, &b,         "-b", "--beta",     false,         "Flag B");
-    flag_decl_bool(&flags, &c,         "-c", "--gamma",    false,         "Flag C");
-    flag_decl_bool(&flags, &run_test,  NULL, "--run-test", false,         "run-test (ignored)");
-    flag_decl_str(&flags,  &f,         "-f", "--file",     "default.txt", "File path");
-    flag_decl_int(&flags,  &n,         "-n", "--num",      -1,            "Signed int");
-    flag_decl_uint(&flags, &u,         "-u", "--unum",     0,             "Unsigned int");
-    flag_decl_double(&flags, &d,       "-d", "--dbl",      0.0,           "Double");
+    flag_decl_bool(&flags,   &a,         "-a", "--alpha",    false,         "Flag A");
+    flag_decl_bool(&flags,   &b,         "-b", "--beta",     false,         "Flag B");
+    flag_decl_bool(&flags,   &c,         "-c", "--gamma",    false,         "Flag C");
+    flag_decl_bool(&flags,   &run_test,  NULL, "--run-test", false,         "run-test (ignored)");
+    flag_decl_str(&flags,    &f,         "-f", "--file",     "default.txt", "File path");
+    flag_decl_int(&flags,    &n,         "-n", "--num",      -1,            "Signed int");
+    flag_decl_uint(&flags,   &u,         "-u", "--unum",     0,             "Unsigned int");
+    flag_decl_double(&flags, &d,         "-d", "--dbl",      0.0,           "Double");
 
     int rc = flag_parse(&flags, argc, argv);
     if (rc != 0)
@@ -173,11 +173,18 @@ int main(int argc, char **argv)
             1,
             "invalid value"
         },
+        {
+            "invalid int value",
+            (char *[]){ "-u-99", NULL },
+            1,
+            "invalid value"
+        },
     };
 
     size_t num_cases = sizeof(cases) / sizeof(cases[0]);
     size_t passed = 0;
-    for (size_t i = 0; i < num_cases; i++) {
+    for (size_t i = 0; i < num_cases; i++) 
+    {
         if (exec_case(argv[0], &cases[i])) passed++;
     }
 
